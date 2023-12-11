@@ -25,7 +25,6 @@ let WIDTH = document.body.clientWidth * 0.9;
 let HEIGHT = document.body.clientHeight * 0.9 - jokeMinHeight;
 let animating = false;
 let animationFrameId = 0;
-let completedBallsCount = 0;
 let balls = [];
 let jokeArr = [];
 let _jokeArr = [];
@@ -35,9 +34,9 @@ canvas.height = HEIGHT;
 // Objects
 class Ball {
     constructor(x, y, dy, word, index) {
-        this.radius = 0;
         this.isExpired = false;
         this.opacity = 0.75;
+        this.radius = 0;
         this.x = x;
         this.y = y;
         this._y = y;
@@ -94,10 +93,6 @@ class Ball {
     build() {
         let left = padding.x;
         let top = padding.y;
-        const div = document.createElement("div");
-        div.className = "joke-word";
-        div.style.backgroundColor = `rgba(${this.colorValues.join(", ")}, 1)`;
-        div.innerHTML = this.word;
         _jokeArr.forEach(({ word }, i) => {
             if (this.index > i) {
                 left += getWidth(word) + gapBetweenWords.x;
@@ -107,24 +102,24 @@ class Ball {
                 }
             }
         });
+        const div = document.createElement("div");
+        div.className = "joke-word";
+        div.style.backgroundColor = `rgba(${this.colorValues.join(", ")}, 1)`;
+        div.innerHTML = this.word;
         div.style.left = left + "px";
         div.style.top = top + "px";
         jokeElem.append(div);
         const height = Math.max(...[...jokeElem.childNodes].map((el) => parseFloat(el.style.top))) +
             jokeWordHeight +
             padding.y; // the top of the last word + word height + padding
-        if ((!parseFloat(jokeElem.style.height) && height > jokeMinHeight) ||
-            height > parseFloat(jokeElem.style.height)) {
+        if (height !== parseFloat(jokeElem.style.height)) {
             jokeElem.style.height = height + "px";
         }
-        completedBallsCount++;
     }
 }
 // Functions
 function fetchJokeArr() {
     return __awaiter(this, void 0, void 0, function* () {
-        // const categories = [Programming,Pun,Christmas];
-        // nsfw,religious,political,racist,sexist,explicit
         setLoading();
         try {
             // const res = await fetch("https://icanhazdadjoke.com/slack");
@@ -201,20 +196,19 @@ function getWidth(text) {
 canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, function* () {
     if (!jokeArr.length && !animating) {
         try {
+            balls = [];
             yield fetchJokeArr();
+            jokeElem.style.removeProperty("height");
+            jokeElem.innerHTML = "";
+            animate();
+            animating = true;
         }
         catch (err) {
             showToast("Sorry, something went wrong", "err");
             return;
         }
     }
-    if (!animating) {
-        jokeElem.style.removeProperty("height");
-        jokeElem.innerHTML = "";
-        animate();
-        animating = true;
-    }
-    if (jokeArr.length === 0 && !document.querySelector(".toast")) {
+    if (!jokeArr.length && !document.querySelector(".toast")) {
         showToast("Wait...");
     }
     if (!jokeArr.length && animating)
@@ -229,36 +223,32 @@ reloadBtn.addEventListener("click", () => {
 });
 window.addEventListener("resize", () => {
     WIDTH = document.body.clientWidth * 0.9;
-    HEIGHT = document.body.clientHeight * 0.9 - jokeMinHeight;
+    HEIGHT =
+        document.body.clientHeight * 0.9 - parseFloat(jokeElem.style.height) ||
+            jokeMinHeight;
     jokeElem.style.width = WIDTH + borderWidth + "px";
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
-    hideToasts();
-    ctx.clearRect(0, 0, WIDTH, HEIGHT);
-    cancelAnimationFrame(animationFrameId);
-    jokeElem.style.removeProperty("height");
     jokeElem.innerHTML = "";
-    animating = false;
-    animationFrameId = 0;
-    balls = [];
-    jokeArr = [];
-    _jokeArr = [];
-    completedBallsCount = 0;
+    balls.forEach((ball) => {
+        ball.build();
+    });
 });
 // Animation Loop
 function animate() {
     animationFrameId = requestAnimationFrame(animate);
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
-    balls = balls.filter((ball) => !ball.isExpired);
-    balls.forEach((ball) => {
+    // balls = balls.filter((ball) => !ball.isExpired);
+    balls
+        .filter((ball) => !ball.isExpired)
+        .forEach((ball) => {
         ball.update();
     });
-    if (completedBallsCount === _jokeArr.length) {
+    if (_jokeArr.length === jokeElem.children.length) {
         console.log("finished");
         cancelAnimationFrame(animationFrameId);
         animating = false;
         animationFrameId = 0;
-        completedBallsCount = 0;
         showToast("you can start again.", "scss");
     }
 }
