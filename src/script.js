@@ -10,49 +10,47 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 const messageModal = document.querySelector("#error");
 const loadingModal = document.querySelector("#loading");
-const reloadBtn = document.querySelector(".error button");
-const messageElem = document.querySelector(".message");
+const reloadBtn = document.querySelector("#error button");
 const jokeElem = document.querySelector(".joke");
 const canvas = document.querySelector("canvas");
 const ctx = canvas === null || canvas === void 0 ? void 0 : canvas.getContext("2d");
-const WIDTH = document.body.clientWidth * 0.9;
-const HEIGHT = document.body.clientHeight * 0.7;
-// const jokeMinHeight = 80;
+const jokeMinHeight = 80;
 const jokeWordHeight = 29;
 const padding = { x: 4, y: 8 };
-const gapBetweenWords = 3;
-jokeElem.style.maxWidth = WIDTH + "px";
-const gravity = 0.2;
-const friction = 0.7;
+const gapBetweenWords = { x: 1, y: 3 };
+const WIDTH = document.body.clientWidth * 0.9;
+const HEIGHT = document.body.clientHeight * 0.9 - jokeMinHeight;
+const gravity = 0.98;
+const friction = 0.5;
 const borderWidth = 1;
-const ballRadius = 75;
 let animating = false;
 let animationFrameId = 0;
 let completedBallsCount = 0;
 let balls = [];
 let jokeArr = [];
 let _jokeArr = [];
+jokeElem.style.width = WIDTH + borderWidth + "px";
 canvas.width = WIDTH;
 canvas.height = HEIGHT;
 // Objects
 class Ball {
-    constructor(x, y, dx, dy, radius, word, index) {
+    constructor(x, y, dy, word, index) {
+        this.radius = 0;
         this.isExpired = false;
-        this.opacity = 1;
+        this.opacity = 0.75;
         this.x = x;
         this.y = y;
         this._y = y;
-        this.dx = dx;
         this.dy = dy;
-        this.radius = radius;
-        this.colorValues = Array.from({ length: 3 }).map(() => Math.floor(Math.random() * 255));
         this.word = word;
+        this.colorValues = Array.from({ length: 3 }).map(() => Math.floor(Math.random() * 151));
         this.index = index;
     }
     update() {
         this._y = this.y;
         if (this.y + this.radius + this.dy + borderWidth > HEIGHT) {
-            this.dy = -this.dy * friction;
+            this.dy = -this.dy;
+            this.dy = this.dy * friction;
         }
         else
             this.dy += gravity;
@@ -62,7 +60,8 @@ class Ball {
             this.isExpired = true;
         }
         if (this._y === this.y)
-            this.opacity -= 0.075;
+            this.opacity -= 0.2;
+        console.log(this.dy);
         this.draw();
     }
     draw() {
@@ -70,27 +69,42 @@ class Ball {
             return;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-        ctx.fillStyle = `rgba(0,0,0, ${this.opacity})`;
+        ctx.fillStyle = `rgba(${this.colorValues.join(", ")}, ${this.opacity})`;
         ctx.fill();
         ctx.closePath();
         ctx.font = "30px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "white";
-        ctx.fillText(this.word, this.x, this.y);
+        ctx.fillText(this.word, this.x, this.y, WIDTH / 2);
+        if (!this.radius)
+            this.radius = ctx.measureText(this.word).width / 2 + 20;
+        if (this.x - this.radius < 0) {
+            this.x = this.radius;
+        }
+        else if (this.x + this.radius > WIDTH) {
+            this.x = WIDTH - this.radius;
+        }
+        else if (this.y - this.radius < 0) {
+            this.y = this.radius;
+        }
+        else if (this.y + this.radius > HEIGHT) {
+            this.y = HEIGHT - this.radius;
+        }
     }
     build() {
         let left = padding.x;
         let top = padding.y;
         const div = document.createElement("div");
         div.className = "joke-word";
+        div.style.backgroundColor = `rgba(${this.colorValues.join(", ")}, 1)`;
         div.innerHTML = this.word;
-        _jokeArr.forEach((word, i) => {
+        _jokeArr.forEach(({ word }, i) => {
             if (this.index > i) {
-                left += getWidth(word) + 1;
-                while (left + getWidth(_jokeArr[i + 1]) > WIDTH - padding.x) {
-                    left = padding.y;
-                    top += jokeWordHeight + gapBetweenWords;
+                left += getWidth(word) + gapBetweenWords.x;
+                while (left + getWidth(_jokeArr[i + 1].word) > WIDTH - padding.x) {
+                    left = padding.x;
+                    top += jokeWordHeight + gapBetweenWords.y;
                 }
             }
         });
@@ -99,34 +113,47 @@ class Ball {
         jokeElem.append(div);
         const height = Math.max(...[...jokeElem.childNodes].map((el) => parseFloat(el.style.top))) +
             jokeWordHeight +
-            5; // the top of the last word + word height + padding
-        jokeElem.style.height = height + "px";
+            padding.y; // the top of the last word + word height + padding
+        if ((!parseFloat(jokeElem.style.height) && height > jokeMinHeight) ||
+            height > parseFloat(jokeElem.style.height)) {
+            jokeElem.style.height = height + "px";
+        }
         completedBallsCount++;
     }
 }
 // Functions
 function fetchJokeArr() {
     return __awaiter(this, void 0, void 0, function* () {
+        // const categories = [Programming,Pun,Christmas];
+        // nsfw,religious,political,racist,sexist,explicit
         setLoading();
         try {
-            const res = yield fetch("https://icanhazdadjoke.com/slack");
+            // const res = await fetch("https://icanhazdadjoke.com/slack");
+            // const data: { attachments: [{ text: string }] } = await res.json();
+            // const text = data.attachments[0].text;
+            const res = yield fetch("https://v2.jokeapi.dev/joke/Programming,Pun,Christmas?blacklistFlags=nsfw,racist,sexist,explicit");
             const data = yield res.json();
-            console.log(data.attachments[0].text);
-            jokeArr = data.attachments[0].text.split(" ").filter(Boolean);
+            if (data.error)
+                throw data;
+            const text = data.joke ? data.joke : (data === null || data === void 0 ? void 0 : data.setup) + " " + (data === null || data === void 0 ? void 0 : data.delivery);
+            jokeArr = text
+                .split(/[\n\r\u2028\u2029\s]/g)
+                .filter(Boolean)
+                .map((word, index) => ({ word, index }));
             _jokeArr = [...jokeArr];
         }
         catch (err) {
             console.error(err);
-            showMessage("Something went wrong!");
+            showRebootBtn();
+            throw err;
         }
         finally {
             setLoading(false);
         }
     });
 }
-function showMessage(message = "") {
+function showRebootBtn() {
     messageModal.style.display = "flex";
-    messageElem.innerHTML = message;
 }
 function setLoading(isLoading = true) {
     if (isLoading) {
@@ -151,8 +178,8 @@ function showToast(text, state = "hint") {
     var _a;
     const toast = document.createElement("p");
     toast.className = "toast";
-    toast.innerHTML = `<span>${text}<span> <bold>&times;</bold>`;
-    (_a = toast.querySelector("bold")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", hideToasts);
+    toast.innerHTML = `<span>${text}<span> <b>&times;</b>`;
+    (_a = toast.querySelector("b")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", hideToasts);
     let color = { err: "red", hint: "gray", scss: "green" }[state];
     toast.style.cssText = `display: flex; background: ${color};`;
     document.body.append(toast);
@@ -174,7 +201,13 @@ function getWidth(text) {
 // Handlers
 canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, function* () {
     if (!jokeArr.length && !animating) {
-        yield fetchJokeArr();
+        try {
+            yield fetchJokeArr();
+        }
+        catch (err) {
+            showToast("Sorry, something went wrong", "err");
+            return;
+        }
     }
     if (!animating) {
         jokeElem.style.removeProperty("height");
@@ -182,15 +215,15 @@ canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, functi
         animate();
         animating = true;
     }
-    if (!jokeArr.length && animating) {
-        return;
-    }
-    const b = new Ball(e.offsetX, e.offsetY, 5, 0, ballRadius, jokeArr[0], _jokeArr.length - jokeArr.length);
-    balls.push(b);
-    jokeArr.shift();
-    if (jokeArr.length === 0) {
+    if (jokeArr.length === 0 && !document.querySelector(".toast")) {
         showToast("Wait...");
     }
+    if (!jokeArr.length && animating)
+        return;
+    const randomWordId = Math.floor(Math.random() * (jokeArr.length - 1));
+    const b = new Ball(e.offsetX, e.offsetY, 5, jokeArr[randomWordId].word, jokeArr[randomWordId].index);
+    balls.push(b);
+    jokeArr = jokeArr.filter((_, i) => i !== randomWordId);
 }));
 reloadBtn.addEventListener("click", () => {
     window.location.reload();
@@ -209,5 +242,6 @@ function animate() {
         animating = false;
         animationFrameId = 0;
         completedBallsCount = 0;
+        showToast("you can start again.", "scss");
     }
 }
