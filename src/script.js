@@ -18,11 +18,11 @@ const jokeMinHeight = 80;
 const jokeWordHeight = 29;
 const padding = { x: 4, y: 8 };
 const gapBetweenWords = { x: 1, y: 3 };
-const WIDTH = document.body.clientWidth * 0.9;
-const HEIGHT = document.body.clientHeight * 0.9 - jokeMinHeight;
 const gravity = 0.98;
 const friction = 0.5;
 const borderWidth = 1;
+let WIDTH = document.body.clientWidth * 0.9;
+let HEIGHT = document.body.clientHeight * 0.9 - jokeMinHeight;
 let animating = false;
 let animationFrameId = 0;
 let completedBallsCount = 0;
@@ -61,7 +61,6 @@ class Ball {
         }
         if (this._y === this.y)
             this.opacity -= 0.2;
-        console.log(this.dy);
         this.draw();
     }
     draw() {
@@ -227,6 +226,24 @@ canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, functi
 }));
 reloadBtn.addEventListener("click", () => {
     window.location.reload();
+});
+window.addEventListener("resize", () => {
+    WIDTH = document.body.clientWidth * 0.9;
+    HEIGHT = document.body.clientHeight * 0.9 - jokeMinHeight;
+    jokeElem.style.width = WIDTH + borderWidth + "px";
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    hideToasts();
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+    cancelAnimationFrame(animationFrameId);
+    jokeElem.style.removeProperty("height");
+    jokeElem.innerHTML = "";
+    animating = false;
+    animationFrameId = 0;
+    balls = [];
+    jokeArr = [];
+    _jokeArr = [];
+    completedBallsCount = 0;
 });
 // Animation Loop
 function animate() {

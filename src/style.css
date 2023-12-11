@@ -93,7 +93,7 @@ canvas {
 }
 
 .joke {
-  transition: 0.3s;
+  transition: height 0.3s;
 
   border: 1px solid;
   border-bottom: none;
