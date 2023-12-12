@@ -8,21 +8,23 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+const ruler = document.querySelector(".ruler");
 const messageModal = document.querySelector("#error");
 const loadingModal = document.querySelector("#loading");
 const reloadBtn = document.querySelector("#error button");
 const jokeElem = document.querySelector(".joke");
 const canvas = document.querySelector("canvas");
 const ctx = canvas === null || canvas === void 0 ? void 0 : canvas.getContext("2d");
-const jokeMinHeight = 80;
-const jokeWordHeight = 29;
-const padding = { x: 4, y: 8 };
-const gapBetweenWords = { x: 1, y: 3 };
-const gravity = 0.98;
-const friction = 0.5;
-const borderWidth = 1;
-let WIDTH = document.body.clientWidth * 0.9;
-let HEIGHT = document.body.clientHeight * 0.9 - jokeMinHeight;
+const canvasFontSize = root("--canvas-font-size");
+const jokeWordHeight = root("--joke-word-height");
+const padding = { x: root("--joke-px"), y: root("--joke-py") };
+const jokeMinHeight = jokeWordHeight + padding.y * 2;
+const gapBetweenWords = { x: root("--joke-gap-x"), y: root("--joke-gap-y") };
+const borderWidth = root("--canvas-border-width");
+const gravity = 0.7;
+const friction = 0.6;
+let WIDTH = window.innerWidth * 0.9;
+let HEIGHT = window.innerHeight * 0.9 - jokeMinHeight;
 let animating = false;
 let animationFrameId = 0;
 let balls = [];
@@ -42,7 +44,8 @@ class Ball {
         this._y = y;
         this.dy = dy;
         this.word = word;
-        this.colorValues = Array.from({ length: 3 }).map(() => Math.floor(Math.random() * 151));
+        this.colorValues = Array.from({ length: 3 }).map(() => Math.floor(Math.random() * 151) // picking random dark color
+        );
         this.index = index;
     }
     update() {
@@ -70,7 +73,7 @@ class Ball {
         ctx.fillStyle = `rgba(${this.colorValues.join(", ")}, ${this.opacity})`;
         ctx.fill();
         ctx.closePath();
-        ctx.font = "30px Arial";
+        ctx.font = `${canvasFontSize}px Arial`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "white";
@@ -106,6 +109,7 @@ class Ball {
         div.className = "joke-word";
         div.style.backgroundColor = `rgba(${this.colorValues.join(", ")}, 1)`;
         div.innerHTML = this.word;
+        div.style.width = getWidth(this.word) + "px";
         div.style.left = left + "px";
         div.style.top = top + "px";
         jokeElem.append(div);
@@ -114,6 +118,8 @@ class Ball {
             padding.y; // the top of the last word + word height + padding
         if (height !== parseFloat(jokeElem.style.height)) {
             jokeElem.style.height = height + "px";
+            HEIGHT = window.innerHeight * 0.9 - height;
+            canvas.height = HEIGHT;
         }
     }
 }
@@ -122,9 +128,6 @@ function fetchJokeArr() {
     return __awaiter(this, void 0, void 0, function* () {
         setLoading();
         try {
-            // const res = await fetch("https://icanhazdadjoke.com/slack");
-            // const data: { attachments: [{ text: string }] } = await res.json();
-            // const text = data.attachments[0].text;
             const res = yield fetch("https://v2.jokeapi.dev/joke/Programming,Pun,Christmas?blacklistFlags=nsfw,racist,sexist,explicit");
             const data = yield res.json();
             if (data.error)
@@ -138,13 +141,17 @@ function fetchJokeArr() {
         }
         catch (err) {
             console.error(err);
+            showToast("Sorry, something went wrong", "err");
             showRebootBtn();
-            throw err;
         }
         finally {
             setLoading(false);
         }
     });
+}
+function root(t) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(t);
+    return parseFloat(v);
 }
 function showRebootBtn() {
     messageModal.style.display = "flex";
@@ -156,57 +163,52 @@ function setLoading(isLoading = true) {
     else
         loadingModal.style.display = "none";
 }
-function hideToasts() {
-    const toasts = document.querySelectorAll(".toast");
-    toasts === null || toasts === void 0 ? void 0 : toasts.forEach((toast) => {
-        if (toast) {
-            toast.style.opacity = "0";
-            setTimeout(() => {
-                toast.style.cssText = `display: none`;
-                toast.remove();
-            }, parseFloat(getComputedStyle(toast).getPropertyValue("--dur")));
-        }
-    });
+function hideToasts(toast) {
+    if (toast === "every") {
+        const toasts = document.querySelectorAll(".toast");
+        toasts === null || toasts === void 0 ? void 0 : toasts.forEach((toast) => {
+            if (toast) {
+                toast.style.opacity = "0";
+                setTimeout(() => {
+                    toast.style.cssText = `display: none`;
+                    toast.remove();
+                }, parseFloat(getComputedStyle(toast).getPropertyValue("--dur")));
+            }
+        });
+    }
+    else {
+        toast.style.opacity = "0";
+        setTimeout(() => {
+            toast.style.cssText = `display: none`;
+            toast.remove();
+        }, parseFloat(getComputedStyle(toast).getPropertyValue("--dur")));
+    }
 }
 function showToast(text, state = "hint") {
     var _a;
     const toast = document.createElement("p");
+    const color = { err: "red", hint: "gray", scss: "green" }[state];
     toast.className = "toast";
     toast.innerHTML = `<span>${text}<span> <b>&times;</b>`;
-    (_a = toast.querySelector("b")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", hideToasts);
-    let color = { err: "red", hint: "gray", scss: "green" }[state];
+    (_a = toast.querySelector("b")) === null || _a === void 0 ? void 0 : _a.addEventListener("click", () => hideToasts(toast));
     toast.style.cssText = `display: flex; background: ${color};`;
     document.body.append(toast);
     setTimeout(() => (toast.style.opacity = "1"), 0);
-    setTimeout(hideToasts, 3000);
+    setTimeout(() => hideToasts(toast), 3000);
 }
 function getWidth(text) {
-    const div = document.createElement("div");
-    div.style.cssText = `
-    font-size: 20px;
-    color: white;
-    padding: 3px 5px;`;
-    div.innerHTML = text;
-    document.body.append(div);
-    let w = div.clientWidth;
-    div.remove();
-    return w;
+    ruler.innerHTML = text;
+    return ruler.clientWidth;
 }
 // Handlers
 canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, function* () {
     if (!jokeArr.length && !animating) {
-        try {
-            balls = [];
-            yield fetchJokeArr();
-            jokeElem.style.removeProperty("height");
-            jokeElem.innerHTML = "";
-            animate();
-            animating = true;
-        }
-        catch (err) {
-            showToast("Sorry, something went wrong", "err");
-            return;
-        }
+        yield fetchJokeArr();
+        balls = [];
+        jokeElem.style.removeProperty("height");
+        jokeElem.innerHTML = "";
+        animate();
+        animating = true;
     }
     if (!jokeArr.length && !document.querySelector(".toast")) {
         showToast("Wait...");
@@ -214,7 +216,7 @@ canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, functi
     if (!jokeArr.length && animating)
         return;
     const randomWordId = Math.floor(Math.random() * (jokeArr.length - 1));
-    const b = new Ball(e.offsetX, e.offsetY, 5, jokeArr[randomWordId].word, jokeArr[randomWordId].index);
+    const b = new Ball(e.offsetX, e.offsetY, 10, jokeArr[randomWordId].word, jokeArr[randomWordId].index);
     balls.push(b);
     jokeArr = jokeArr.filter((_, i) => i !== randomWordId);
 }));
@@ -222,10 +224,10 @@ reloadBtn.addEventListener("click", () => {
     window.location.reload();
 });
 window.addEventListener("resize", () => {
-    WIDTH = document.body.clientWidth * 0.9;
+    WIDTH = window.innerWidth * 0.9;
     HEIGHT =
-        document.body.clientHeight * 0.9 - parseFloat(jokeElem.style.height) ||
-            jokeMinHeight;
+        window.innerHeight * 0.9 -
+            (parseFloat(jokeElem.style.height) || jokeMinHeight);
     jokeElem.style.width = WIDTH + borderWidth + "px";
     canvas.width = WIDTH;
     canvas.height = HEIGHT;

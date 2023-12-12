@@ -1,9 +1,14 @@
 :root {
   --joke-word-height: 29px;
+
   --joke-py: 8px;
   --joke-px: 4px;
-  --joke-gap: 3px;
+  --joke-gap-x: 3px;
+  --joke-gap-y: 3px;
   --joke-min-height: calc(var(--joke-word-height) + (var(--joke-py) * 2));
+
+  --canvas-border-width: 1px;
+  --canvas-font-size: 30px;
 }
 
 * {
@@ -33,7 +38,7 @@ body {
 }
 
 canvas {
-  border: 1px solid;
+  border: var(--canvas-border-width) solid;
 }
 
 .canvas-wrapper {
@@ -127,6 +132,21 @@ canvas {
     white-space: nowrap;
     height: var(--joke-word-height);
   }
+}
+
+.ruler {
+  opacity: 0;
+  visibility: 0;
+  position: fixed;
+  top: 0;
+  right: 0;
+  font-size: 20px;
+  white-space: nowrap;
+  border-radius: 4px;
+  padding: 3px 5px;
+  pointer-events: none;
+  z-index: -1;
+  height: var(--joke-word-height);
 }
 
 @keyframes spin {
