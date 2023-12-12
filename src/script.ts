@@ -17,17 +17,18 @@ const reloadBtn = document.querySelector("#error button") as HTMLButtonElement;
 const jokeElem = document.querySelector(".joke") as HTMLDivElement;
 const canvas = document.querySelector("canvas")!;
 const ctx = canvas?.getContext("2d")!;
-const canvasFontSize = root("--canvas-font-size");
-const jokeWordHeight = root("--joke-word-height");
-const padding = { x: root("--joke-px"), y: root("--joke-py") };
-const jokeMinHeight = jokeWordHeight + padding.y * 2;
-const gapBetweenWords = { x: root("--joke-gap-x"), y: root("--joke-gap-y") };
-const borderWidth = root("--canvas-border-width");
-const gravity = 0.7;
-const friction = 0.6;
+const canvasFontSize = style("--canvas-font-size");
+const jokeWordHeight = style("--joke-word-height");
+const jokePadding = { x: style("--joke-px"), y: style("--joke-py") };
+const jokeMinHeight = jokeWordHeight + jokePadding.y * 2;
+const gapBetweenWords = { x: style("--joke-gap-x"), y: style("--joke-gap-y") };
+const borderWidth = style("--canvas-border-width");
+const toastColors = { err: "red", hint: "#6c757d", scss: "green" };
+const gravity = 0.8;
+const friction = 0.5;
 
 let WIDTH = window.innerWidth * 0.9;
-let HEIGHT = window.innerHeight * 0.9 - jokeMinHeight;
+let HEIGHT = window.innerHeight * 0.9;
 let animating = false;
 let animationFrameId = 0;
 let balls: Ball[] = [];
@@ -49,6 +50,7 @@ class Ball {
   colorValues;
   isExpired: boolean = false;
   opacity: number = 0.75;
+  _opacity: number = 0.75;
   radius: number = 0;
 
   constructor(x: number, y: number, dy: number, word: string, index: number) {
@@ -104,14 +106,14 @@ class Ball {
   }
 
   build() {
-    let left = padding.x;
-    let top = padding.y;
+    let left = jokePadding.x;
+    let top = jokePadding.y;
 
     _jokeArr.forEach(({ word }, i) => {
       if (this.index > i) {
         left += getWidth(word) + gapBetweenWords.x;
-        while (left + getWidth(_jokeArr[i + 1].word) > WIDTH - padding.x) {
-          left = padding.x;
+        while (left + getWidth(_jokeArr[i + 1].word) > WIDTH - jokePadding.x) {
+          left = jokePadding.x;
           top += jokeWordHeight + gapBetweenWords.y;
         }
       }
@@ -119,7 +121,9 @@ class Ball {
 
     const div = document.createElement("div");
     div.className = "joke-word";
-    div.style.backgroundColor = `rgba(${this.colorValues.join(", ")}, 1)`;
+    div.style.backgroundColor = `rgba(${this.colorValues.join(", ")}, ${
+      this._opacity
+    })`;
     div.innerHTML = this.word;
     div.style.width = getWidth(this.word) + "px";
 
@@ -134,12 +138,10 @@ class Ball {
         )
       ) +
       jokeWordHeight +
-      padding.y; // the top of the last word + word height + padding
+      jokePadding.y; // the top of the last word + word height + jokePadding
 
     if (height !== parseFloat(jokeElem.style.height)) {
       jokeElem.style.height = height + "px";
-      HEIGHT = window.innerHeight * 0.9 - height;
-      canvas.height = HEIGHT;
     }
   }
 }
@@ -168,7 +170,7 @@ async function fetchJokeArr() {
     setLoading(false);
   }
 }
-function root(t: string) {
+function style(t: string) {
   const v = getComputedStyle(document.documentElement).getPropertyValue(t);
   return parseFloat(v);
 }
@@ -182,10 +184,9 @@ function setLoading(isLoading: boolean = true) {
 }
 function hideToasts(toast: HTMLParagraphElement | "every") {
   if (toast === "every") {
-    const toasts = document.querySelectorAll(
-      ".toast"
-    ) as NodeListOf<HTMLParagraphElement>;
-    toasts?.forEach((toast) => {
+    (
+      document.querySelectorAll(".toast") as NodeListOf<HTMLParagraphElement>
+    )?.forEach((toast) => {
       if (toast) {
         toast.style.opacity = "0";
         setTimeout(() => {
@@ -204,9 +205,9 @@ function hideToasts(toast: HTMLParagraphElement | "every") {
 }
 function showToast(text: string, state: "err" | "scss" | "hint" = "hint") {
   const toast = document.createElement("p") as HTMLParagraphElement;
-  const color = { err: "red", hint: "gray", scss: "green" }[state];
+  const color = toastColors[state];
   toast.className = "toast";
-  toast.innerHTML = `<span>${text}<span> <b>&times;</b>`;
+  toast.innerHTML = `<span>${text}</span> <b>&times;</b>`;
   toast.querySelector("b")?.addEventListener("click", () => hideToasts(toast));
   toast.style.cssText = `display: flex; background: ${color};`;
   document.body.append(toast);
@@ -232,7 +233,12 @@ canvas.addEventListener("click", async (e) => {
   if (!jokeArr.length && !document.querySelector(".toast")) {
     showToast("Wait...");
   }
+
   if (!jokeArr.length && animating) return;
+  if (e.offsetY < jokeElem.offsetHeight) {
+    if (!document.querySelector(".toast")) showToast("click lowwer");
+    return;
+  }
 
   const randomWordId = Math.floor(Math.random() * (jokeArr.length - 1));
 
@@ -252,9 +258,7 @@ reloadBtn.addEventListener("click", () => {
 });
 window.addEventListener("resize", () => {
   WIDTH = window.innerWidth * 0.9;
-  HEIGHT =
-    window.innerHeight * 0.9 -
-    (parseFloat(jokeElem.style.height) || jokeMinHeight);
+  HEIGHT = window.innerHeight * 0.9;
 
   jokeElem.style.width = WIDTH + borderWidth + "px";
   canvas.width = WIDTH;
