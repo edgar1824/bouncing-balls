@@ -6,7 +6,7 @@
    npm install -g typescript
    ```
 
-   To compile the TypeScript code, navigate to the project root directory in your terminal and run:
+   To compile the TypeScript code run:
 
    ```bash
    tsc
