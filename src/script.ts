@@ -1,3 +1,4 @@
+// ### Interfaces ###
 interface IJoke {
   word: string;
   index: number;
@@ -10,6 +11,8 @@ interface IResponse {
   delivery?: string;
 }
 
+// ### Variables ###
+// Elements
 const ruler = document.querySelector(".ruler") as HTMLDivElement;
 const messageModal = document.querySelector("#error") as HTMLDivElement;
 const loadingModal = document.querySelector("#loading") as HTMLDivElement;
@@ -17,20 +20,25 @@ const reloadBtn = document.querySelector("#error button") as HTMLButtonElement;
 const jokeElem = document.querySelector(".joke") as HTMLDivElement;
 const canvas = document.querySelector("canvas")!;
 const ctx = canvas?.getContext("2d")!;
+// For styling
 const canvasFontSize = style("--canvas-font-size");
 const jokeWordHeight = style("--joke-word-height");
+const jokeWordDur = style("--joke-word-dur");
 const jokePadding = { x: style("--joke-px"), y: style("--joke-py") };
 const jokeMinHeight = jokeWordHeight + jokePadding.y * 2;
 const gapBetweenWords = { x: style("--joke-gap-x"), y: style("--joke-gap-y") };
 const borderWidth = style("--canvas-border-width");
-const toastColors = { err: "red", hint: "#6c757d", scss: "green" };
+const toastDur = style("--toast-dur");
+const toastColors = { err: "red", wrng: "#6c757d", scss: "green" };
+
+// For animation
 const gravity = 0.8;
 const friction = 0.5;
-
 let WIDTH = window.innerWidth * 0.9;
 let HEIGHT = window.innerHeight * 0.9;
 let animating = false;
 let animationFrameId = 0;
+let timeout: NodeJS.Timeout;
 let balls: Ball[] = [];
 let jokeArr: IJoke[] = [];
 let _jokeArr: IJoke[] = [];
@@ -39,7 +47,7 @@ jokeElem.style.width = WIDTH + borderWidth + "px";
 canvas.width = WIDTH;
 canvas.height = HEIGHT;
 
-// Objects
+// ### Objects ###
 class Ball {
   index;
   x;
@@ -65,6 +73,7 @@ class Ball {
     this.index = index;
   }
 
+  // Updating state of ball
   update() {
     this._y = this.y;
     if (this.y + this.radius + this.dy + borderWidth > HEIGHT) {
@@ -73,13 +82,14 @@ class Ball {
     } else this.dy += gravity;
     this.y += this.dy;
     if (this.opacity <= 0) {
-      this.build();
       this.isExpired = true;
+      this.build();
     }
     if (this._y === this.y) this.opacity -= 0.2;
     this.draw();
   }
 
+  // Drawing ball in the canvas
   draw() {
     if (this.isExpired) return;
 
@@ -105,6 +115,7 @@ class Ball {
     }
   }
 
+  // Building words from ball in the joke element
   build() {
     let left = jokePadding.x;
     let top = jokePadding.y;
@@ -143,10 +154,23 @@ class Ball {
     if (height !== parseFloat(jokeElem.style.height)) {
       jokeElem.style.height = height + "px";
     }
+
+    if (!balls.filter((ball) => !ball.isExpired).length) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        reset();
+        if (_jokeArr.length === jokeElem.children.length) {
+          hideToast("all");
+          showToast("you can start again.", "scss");
+          console.log("finished");
+        }
+      }, jokeWordDur);
+    }
   }
 }
 
-// Functions
+// ### Functions ###
+// Fetching joke from API
 async function fetchJokeArr() {
   setLoading();
   try {
@@ -164,81 +188,101 @@ async function fetchJokeArr() {
     _jokeArr = [...jokeArr];
   } catch (err) {
     console.error(err);
-    showToast("Sorry, something went wrong", "err");
+    showToast("Sorry, something went wrong", "err", false);
     showRebootBtn();
+    return "err";
   } finally {
     setLoading(false);
   }
 }
+// Getting global styles from css
 function style(t: string) {
   const v = getComputedStyle(document.documentElement).getPropertyValue(t);
   return parseFloat(v);
 }
+// Displaying reload btn
 function showRebootBtn() {
   messageModal.style.display = "flex";
 }
+// Displaying loading
 function setLoading(isLoading: boolean = true) {
   if (isLoading) {
     loadingModal.style.display = "flex";
   } else loadingModal.style.display = "none";
 }
-function hideToasts(toast: HTMLParagraphElement | "every") {
-  if (toast === "every") {
-    (
-      document.querySelectorAll(".toast") as NodeListOf<HTMLParagraphElement>
-    )?.forEach((toast) => {
-      if (toast) {
-        toast.style.opacity = "0";
-        setTimeout(() => {
-          toast.style.cssText = `display: none`;
-          toast.remove();
-        }, parseFloat(getComputedStyle(toast).getPropertyValue("--dur")));
-      }
-    });
+// Hiding toast / toasts
+function hideToast(arg: "all" | HTMLParagraphElement) {
+  if (arg === "all") {
+    if (!!document.querySelector(".toast")) {
+      (
+        document.querySelectorAll(".toast") as NodeListOf<HTMLParagraphElement>
+      )?.forEach((toast) => hideToast(toast));
+    }
   } else {
-    toast.style.opacity = "0";
+    arg.style.opacity = "0";
     setTimeout(() => {
-      toast.style.cssText = `display: none`;
-      toast.remove();
-    }, parseFloat(getComputedStyle(toast).getPropertyValue("--dur")));
+      arg.style.cssText = `display: none`;
+      arg.remove();
+    }, toastDur);
   }
 }
-function showToast(text: string, state: "err" | "scss" | "hint" = "hint") {
+// Showing toast
+function showToast(
+  text: string,
+  state: "err" | "scss" | "wrng" = "wrng",
+  removeOnEnd: boolean = true
+) {
   const toast = document.createElement("p") as HTMLParagraphElement;
   const color = toastColors[state];
   toast.className = "toast";
   toast.innerHTML = `<span>${text}</span> <b>&times;</b>`;
-  toast.querySelector("b")?.addEventListener("click", () => hideToasts(toast));
+  toast.querySelector("b")?.addEventListener("click", () => hideToast(toast));
   toast.style.cssText = `display: flex; background: ${color};`;
   document.body.append(toast);
-  setTimeout(() => (toast.style.opacity = "1"), 0);
-  setTimeout(() => hideToasts(toast), 3000);
+  setTimeout(() => (toast.style.opacity = "1"), 10);
+  if (removeOnEnd) setTimeout(() => hideToast(toast), 3000);
 }
+// Getting width of joke word element (to calculate positions for word)
 function getWidth(text: string) {
   ruler.innerHTML = text;
   return ruler.clientWidth;
 }
+function reset(cb?: () => void) {
+  cancelAnimationFrame(animationFrameId);
+  animating = false;
+  animationFrameId = 0;
+  cb?.();
+}
 
-// Handlers
+// ### Handlers ###
+// Canvas click
 canvas.addEventListener("click", async (e) => {
+  console.log(animating);
   if (!jokeArr.length && !animating) {
-    await fetchJokeArr();
+    if ((await fetchJokeArr()) === "err") return;
+    clearTimeout(timeout);
+    hideToast("all");
     balls = [];
     jokeElem.style.removeProperty("height");
     jokeElem.innerHTML = "";
     animate();
     animating = true;
   }
-
   if (!jokeArr.length && !document.querySelector(".toast")) {
     showToast("Wait...");
   }
 
   if (!jokeArr.length && animating) return;
+
   if (e.offsetY < jokeElem.offsetHeight) {
     if (!document.querySelector(".toast")) showToast("click lowwer");
     return;
   }
+  if (!animating) {
+    animate();
+    animating = true;
+  }
+  clearTimeout(timeout);
 
   const randomWordId = Math.floor(Math.random() * (jokeArr.length - 1));
 
@@ -252,10 +296,11 @@ canvas.addEventListener("click", async (e) => {
   balls.push(b);
   jokeArr = jokeArr.filter((_, i) => i !== randomWordId);
 });
-
+// Reload btn click
 reloadBtn.addEventListener("click", () => {
   window.location.reload();
 });
+// Reconstructing elements on window resize
 window.addEventListener("resize", () => {
   WIDTH = window.innerWidth * 0.9;
   HEIGHT = window.innerHeight * 0.9;
@@ -274,18 +319,10 @@ window.addEventListener("resize", () => {
 function animate() {
   animationFrameId = requestAnimationFrame(animate);
   ctx.clearRect(0, 0, WIDTH, HEIGHT);
-  // balls = balls.filter((ball) => !ball.isExpired);
+
   balls
     .filter((ball) => !ball.isExpired)
     .forEach((ball) => {
       ball.update();
     });
-
-  if (_jokeArr.length === jokeElem.children.length) {
-    console.log("finished");
-    cancelAnimationFrame(animationFrameId);
-    animating = false;
-    animationFrameId = 0;
-    showToast("you can start again.", "scss");
-  }
 }
