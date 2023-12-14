@@ -295,6 +295,7 @@ canvas.addEventListener("click", async (e) => {
     animating = true;
   }
   if (!jokeArr.length && !document.querySelector(".toast")) {
+    clearInterval(interval as number);
     showToast("Wait...");
     return;
   }

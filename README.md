@@ -16,6 +16,7 @@
 
 2. Open `index.html` in a web browser.
 3. Click on the canvas to release animated joke balls.
+4. Resize canvas/window to see the magic!
 
 ## Dependencies
 
