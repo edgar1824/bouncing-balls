@@ -148,7 +148,7 @@ class Ball {
 
     const height =
       Math.max(
-        ...[...(jokeElem.childNodes as NodeListOf<HTMLDivElement>)].map((el) =>
+        ...[...(jokeElem.childNodes as unknown as HTMLDivElement[])].map((el) =>
           parseFloat(el.style.top)
         )
       ) +
