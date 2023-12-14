@@ -2,6 +2,7 @@
   --joke-word-height: 29px;
   --joke-word-dur: 500ms;
 
+  --joke-dur: 1000ms;
   --joke-py: 8px;
   --joke-px: 4px;
   --joke-gap-x: 3px;
@@ -44,14 +45,13 @@ canvas {
   border: var(--canvas-border-width) solid;
   transition: none;
   z-index: 2;
-  position: relative;
+  resize: horizontal;
 }
 
 .canvas-wrapper {
-  min-height: 90vh;
-  width: 90vw;
   margin: 20px 0;
   flex-direction: column;
+  position: relative;
 }
 
 .bg {
@@ -95,9 +95,14 @@ canvas {
   z-index: 5;
   gap: 12px;
   align-items: center;
+  text-align: center;
 
   display: none;
   opacity: 0;
+
+  span {
+    white-space: nowrap;
+  }
 
   b {
     cursor: pointer;
@@ -118,12 +123,15 @@ canvas {
 
 .joke {
   border-bottom: none;
-  min-width: 200px;
-  display: flex;
-  align-items: center;
-  gap: 1px;
-  flex-wrap: wrap;
   position: absolute;
+  overflow-x: auto;
+  width: 100%;
+  transition: var(--joke-dur);
+  z-index: -1;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   &:has(.joke-word) {
     border-bottom: 1px solid;
@@ -140,6 +148,7 @@ canvas {
     animation: show var(--joke-word-dur) linear forwards;
     white-space: nowrap;
     height: var(--joke-word-height);
+    transition: var(--joke-dur);
   }
 }
 

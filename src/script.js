@@ -35,14 +35,56 @@ let HEIGHT = window.innerHeight * 0.9;
 let animating = false;
 let animationFrameId = 0;
 let timeout;
+let timeoutResize;
 let interval;
 let balls = [];
 let jokeArr = [];
 let _jokeArr = [];
-jokeElem.style.width = WIDTH + borderWidth + "px";
+let mouse = {
+    down: false,
+    allowResize: false,
+};
 canvas.width = WIDTH;
 canvas.height = HEIGHT;
 // ### Objects ###
+class JokeWord {
+    constructor(ball) {
+        this.element = null;
+        this.ball = ball;
+    }
+    build() {
+        this.element = document.createElement("div");
+        this.element.className = "joke-word";
+        this.element.style.backgroundColor = `rgba(${this.ball.colorValues.join(", ")}, ${this.ball._opacity})`;
+        this.element.innerHTML = this.ball.word;
+        this.element.style.width = getWidth(this.ball.word) + "px";
+        jokeElem.append(this.element);
+    }
+    setPossitions() {
+        if (this.element) {
+            let left = jokePadding.x;
+            let top = jokePadding.y;
+            _jokeArr.forEach(({ word }, i) => {
+                if (this.ball.index > i) {
+                    left += getWidth(word) + gapBetweenWords.x;
+                    while (left + getWidth(_jokeArr[i + 1].word) >
+                        WIDTH - jokePadding.x) {
+                        left = jokePadding.x;
+                        top += jokeWordHeight + gapBetweenWords.y;
+                    }
+                }
+            });
+            this.element.style.left = left + "px";
+            this.element.style.top = top + "px";
+            const height = Math.max(...[...jokeElem.childNodes].map((el) => parseFloat(el.style.top))) +
+                jokeWordHeight +
+                jokePadding.y; // the top of the lowwest word + word height + jokePadding
+            if (height !== parseFloat(jokeElem.style.height)) {
+                jokeElem.style.height = height + "px";
+            }
+        }
+    }
+}
 class Ball {
     constructor(x, y, dy, word, index) {
         this.isExpired = false;
@@ -50,6 +92,7 @@ class Ball {
         this._opacity = 0.75;
         this.radius = 0;
         this.padding = 20;
+        this.element = null;
         this.x = x;
         this.y = y;
         this._y = y;
@@ -58,6 +101,7 @@ class Ball {
         this.colorValues = Array.from({ length: 3 }).map(() => Math.floor(Math.random() * 151) // picking random dark color
         );
         this.index = index;
+        this.jokeWord = new JokeWord(this);
     }
     // Updating state of ball
     update() {
@@ -71,7 +115,8 @@ class Ball {
         this.y += this.dy;
         if (this.opacity <= 0) {
             this.isExpired = true;
-            this.build();
+            this.putJokeWord();
+            this.jokeWord.setPossitions();
         }
         if (this._y === this.y)
             this.opacity -= 0.2;
@@ -107,32 +152,8 @@ class Ball {
         }
     }
     // Putting word from ball in the joke element
-    build() {
-        let left = jokePadding.x;
-        let top = jokePadding.y;
-        _jokeArr.forEach(({ word }, i) => {
-            if (this.index > i) {
-                left += getWidth(word) + gapBetweenWords.x;
-                while (left + getWidth(_jokeArr[i + 1].word) > WIDTH - jokePadding.x) {
-                    left = jokePadding.x;
-                    top += jokeWordHeight + gapBetweenWords.y;
-                }
-            }
-        });
-        const div = document.createElement("div");
-        div.className = "joke-word";
-        div.style.backgroundColor = `rgba(${this.colorValues.join(", ")}, ${this._opacity})`;
-        div.innerHTML = this.word;
-        div.style.width = getWidth(this.word) + "px";
-        div.style.left = left + "px";
-        div.style.top = top + "px";
-        jokeElem.append(div);
-        const height = Math.max(...[...jokeElem.childNodes].map((el) => parseFloat(el.style.top))) +
-            jokeWordHeight +
-            jokePadding.y; // the top of the last word + word height + jokePadding
-        if (height !== parseFloat(jokeElem.style.height)) {
-            jokeElem.style.height = height + "px";
-        }
+    putJokeWord() {
+        this.jokeWord.build();
         if (!balls.filter((ball) => !ball.isExpired).length) {
             clearTimeout(timeout);
             timeout = setTimeout(() => {
@@ -197,7 +218,7 @@ function hideToast(arg) {
     var _a;
     if (arg === "all") {
         if (!!document.querySelector(".toast")) {
-            (_a = document.querySelectorAll(".toast")) === null || _a === void 0 ? void 0 : _a.forEach((toast) => hideToast(toast));
+            (_a = document.querySelectorAll(".toast")) === null || _a === void 0 ? void 0 : _a.forEach((toast) => toast && hideToast(toast));
         }
     }
     else {
@@ -256,6 +277,11 @@ canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, functi
     if (e.offsetY < jokeElem.offsetHeight) {
         if (!document.querySelector(".toast"))
             showToast("click lowwer");
+        clearInterval(interval);
+        interval = setInterval(() => {
+            if (!document.querySelector(".toast"))
+                showToast("click to box");
+        }, 7000);
         return;
     }
     if (!animating) {
@@ -282,13 +308,43 @@ reloadBtn.addEventListener("click", () => {
 window.addEventListener("resize", () => {
     WIDTH = window.innerWidth * 0.9;
     HEIGHT = window.innerHeight * 0.9;
-    jokeElem.style.width = WIDTH + borderWidth + "px";
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
-    jokeElem.innerHTML = "";
-    balls.forEach((ball) => {
-        ball.build();
-    });
+    clearTimeout(timeoutResize);
+    timeoutResize = setTimeout(() => {
+        balls.forEach((ball) => {
+            ball.jokeWord.setPossitions();
+        });
+    }, 100);
+});
+window.addEventListener("mousedown", () => {
+    mouse.down = true;
+});
+window.addEventListener("mouseup", () => {
+    mouse = { down: false, allowResize: false };
+});
+window.addEventListener("mousemove", (e) => {
+    const { right, left } = canvas.getBoundingClientRect();
+    if (Math.floor(right) - 10 < e.x && Math.floor(right) + 10 > e.x) {
+        document.body.style.cursor = "ew-resize";
+        if (mouse.down)
+            mouse = Object.assign(Object.assign({}, mouse), { allowResize: true });
+    }
+    else {
+        document.body.style.cursor = "default";
+    }
+    if (mouse.allowResize &&
+        e.x - left > 150 &&
+        e.x - left < window.innerWidth * 0.9) {
+        WIDTH = e.x - left;
+        canvas.width = WIDTH;
+        clearTimeout(timeoutResize);
+        timeoutResize = setTimeout(() => {
+            balls.forEach((ball) => {
+                ball.jokeWord.setPossitions();
+            });
+        }, 100);
+    }
 });
 // Animation Loop
 function animate() {
