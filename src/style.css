@@ -119,13 +119,15 @@ canvas {
 .joke {
   border-bottom: none;
   min-width: 200px;
-
   display: flex;
   align-items: center;
   gap: 1px;
   flex-wrap: wrap;
-
   position: absolute;
+
+  &:has(.joke-word) {
+    border-bottom: 1px solid;
+  }
 
   .joke-word {
     position: absolute;

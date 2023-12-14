@@ -35,6 +35,7 @@ let HEIGHT = window.innerHeight * 0.9;
 let animating = false;
 let animationFrameId = 0;
 let timeout;
+let interval;
 let balls = [];
 let jokeArr = [];
 let _jokeArr = [];
@@ -48,6 +49,7 @@ class Ball {
         this.opacity = 0.75;
         this._opacity = 0.75;
         this.radius = 0;
+        this.padding = 20;
         this.x = x;
         this.y = y;
         this._y = y;
@@ -90,21 +92,21 @@ class Ball {
         ctx.fillStyle = "white";
         ctx.fillText(this.word, this.x, this.y, WIDTH / 2);
         if (!this.radius)
-            this.radius = ctx.measureText(this.word).width / 2 + 20;
+            this.radius = ctx.measureText(this.word).width / 2 + this.padding;
         if (this.x - this.radius < 0) {
             this.x = this.radius;
         }
         else if (this.x + this.radius > WIDTH) {
             this.x = WIDTH - this.radius;
         }
-        else if (this.y - this.radius < 0) {
-            this.y = this.radius;
+        if (this.y - this.radius - jokeElem.clientHeight < 0) {
+            this.y = this.radius + jokeElem.clientHeight;
         }
         else if (this.y + this.radius > HEIGHT) {
             this.y = HEIGHT - this.radius;
         }
     }
-    // Building words from ball in the joke element
+    // Putting word from ball in the joke element
     build() {
         let left = jokePadding.x;
         let top = jokePadding.y;
@@ -134,11 +136,12 @@ class Ball {
         if (!balls.filter((ball) => !ball.isExpired).length) {
             clearTimeout(timeout);
             timeout = setTimeout(() => {
-                reset();
+                resetAnimationValues();
                 if (_jokeArr.length === jokeElem.children.length) {
+                    clearInterval(interval);
                     hideToast("all");
                     showToast("you can start again.", "scss");
-                    console.log("finished");
+                    // Finished
                 }
             }, jokeWordDur);
         }
@@ -224,20 +227,19 @@ function getWidth(text) {
     ruler.innerHTML = text;
     return ruler.clientWidth;
 }
-function reset(cb) {
+function resetAnimationValues() {
     cancelAnimationFrame(animationFrameId);
     animating = false;
     animationFrameId = 0;
-    cb === null || cb === void 0 ? void 0 : cb();
 }
 // ### Handlers ###
 // Canvas click
 canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(animating);
     if (!jokeArr.length && !animating) {
         if ((yield fetchJokeArr()) === "err")
             return;
         clearTimeout(timeout);
+        clearInterval(interval);
         hideToast("all");
         balls = [];
         jokeElem.style.removeProperty("height");
@@ -247,6 +249,7 @@ canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, functi
     }
     if (!jokeArr.length && !document.querySelector(".toast")) {
         showToast("Wait...");
+        return;
     }
     if (!jokeArr.length && animating)
         return;
@@ -260,10 +263,16 @@ canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, functi
         animating = true;
     }
     clearTimeout(timeout);
+    clearInterval(interval);
+    hideToast("all");
     const randomWordId = Math.floor(Math.random() * (jokeArr.length - 1));
     const b = new Ball(e.offsetX, e.offsetY, 10, jokeArr[randomWordId].word, jokeArr[randomWordId].index);
     balls.push(b);
     jokeArr = jokeArr.filter((_, i) => i !== randomWordId);
+    interval = setInterval(() => {
+        if (!document.querySelector(".toast"))
+            showToast("click to box");
+    }, 7000);
 }));
 // Reload btn click
 reloadBtn.addEventListener("click", () => {
