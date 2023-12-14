@@ -38,8 +38,8 @@ let WIDTH = window.innerWidth * 0.9;
 let HEIGHT = window.innerHeight * 0.9;
 let animating = false;
 let animationFrameId = 0;
-let timeout: NodeJS.Timeout;
-let interval: NodeJS.Timer;
+let timeout: unknown;
+let interval: unknown;
 let balls: Ball[] = [];
 let jokeArr: IJoke[] = [];
 let _jokeArr: IJoke[] = [];
@@ -160,11 +160,11 @@ class Ball {
     }
 
     if (!balls.filter((ball) => !ball.isExpired).length) {
-      clearTimeout(timeout);
+      clearTimeout(timeout as number);
       timeout = setTimeout(() => {
         resetAnimationValues();
         if (_jokeArr.length === jokeElem.children.length) {
-          clearInterval(interval);
+          clearInterval(interval as number);
           hideToast("all");
           showToast("you can start again.", "scss");
           // Finished
@@ -263,8 +263,8 @@ function resetAnimationValues() {
 canvas.addEventListener("click", async (e) => {
   if (!jokeArr.length && !animating) {
     if ((await fetchJokeArr()) === "err") return;
-    clearTimeout(timeout);
-    clearInterval(interval);
+    clearTimeout(timeout as number);
+    clearInterval(interval as number);
     hideToast("all");
     balls = [];
     jokeElem.style.removeProperty("height");
@@ -286,8 +286,8 @@ canvas.addEventListener("click", async (e) => {
     animate();
     animating = true;
   }
-  clearTimeout(timeout);
-  clearInterval(interval);
+  clearTimeout(timeout as number);
+  clearInterval(interval as number);
   hideToast("all");
 
   const randomWordId = Math.floor(Math.random() * (jokeArr.length - 1));
