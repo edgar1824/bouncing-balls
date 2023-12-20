@@ -54,7 +54,8 @@ class JokeWord {
     }
     build() {
         this.element = document.createElement("div");
-        this.element.className = "joke-word";
+        // this.element.className = "joke-word";
+        this.element.classList.add("joke-word");
         this.element.style.backgroundColor = `rgba(${this.ball.colorValues.join(", ")}, ${this.ball._opacity})`;
         this.element.innerHTML = this.ball.word;
         this.element.style.width = getWidth(this.ball.word) + "px";
@@ -269,6 +270,7 @@ canvas.addEventListener("click", (e) => __awaiter(void 0, void 0, void 0, functi
         animating = true;
     }
     if (!jokeArr.length && !document.querySelector(".toast")) {
+        clearInterval(interval);
         showToast("Wait...");
         return;
     }

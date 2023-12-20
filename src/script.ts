@@ -62,7 +62,8 @@ class JokeWord {
   }
   build() {
     this.element = document.createElement("div");
-    this.element.className = "joke-word";
+    // this.element.className = "joke-word";
+    this.element.classList.add("joke-word");
     this.element.style.backgroundColor = `rgba(${this.ball.colorValues.join(
       ", "
     )}, ${this.ball._opacity})`;
