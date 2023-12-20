@@ -54,12 +54,14 @@ class JokeWord {
     }
     build() {
         this.element = document.createElement("div");
-        // this.element.className = "joke-word";
-        this.element.classList.add("joke-word");
+        this.element.className = "joke-word";
         this.element.style.backgroundColor = `rgba(${this.ball.colorValues.join(", ")}, ${this.ball._opacity})`;
         this.element.innerHTML = this.ball.word;
         this.element.style.width = getWidth(this.ball.word) + "px";
         jokeElem.append(this.element);
+        if (!!jokeElem.children.length && !!jokeElem.style.borderWidth) {
+            jokeElem.style.borderWidth = "1px";
+        }
     }
     setPossitions() {
         if (this.element) {

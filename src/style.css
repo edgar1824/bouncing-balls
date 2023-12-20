@@ -65,19 +65,18 @@ canvas {
   justify-content: center;
 
   display: none;
-
-  button {
-    font-size: 28px;
-    text-align: center;
-    cursor: pointer;
-    background-color: #ca0000;
-    border: none;
-    color: white;
-    border-radius: 20px;
-    padding: 12px 16px;
-    line-height: 1;
-    box-shadow: 0 0 20px 7px #f400008c;
-  }
+}
+.bg button {
+  font-size: 28px;
+  text-align: center;
+  cursor: pointer;
+  background-color: #ca0000;
+  border: none;
+  color: white;
+  border-radius: 20px;
+  padding: 12px 16px;
+  line-height: 1;
+  box-shadow: 0 0 20px 7px #f400008c;
 }
 
 .toast {
@@ -99,17 +98,15 @@ canvas {
 
   display: none;
   opacity: 0;
-
-  span {
-    white-space: nowrap;
-  }
-
-  b {
-    cursor: pointer;
-    scale: 1.45;
-    height: fit-content;
-    vertical-align: middle;
-  }
+}
+.toast b {
+  cursor: pointer;
+  scale: 1.45;
+  height: fit-content;
+  vertical-align: middle;
+}
+.toast span {
+  white-space: nowrap;
 }
 
 .loader {
@@ -128,28 +125,26 @@ canvas {
   width: 100%;
   transition: var(--joke-dur);
   z-index: -1;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  &:has(.joke-word) {
-    border-bottom: 1px solid;
-  }
-
-  .joke-word {
-    position: absolute;
-    font-size: 20px;
-    color: white;
-    padding: 3px 5px;
-    background-color: black;
-    border-radius: 4px;
-    opacity: 0;
-    animation: show var(--joke-word-dur) linear forwards;
-    white-space: nowrap;
-    height: var(--joke-word-height);
-    transition: var(--joke-dur);
-  }
+  border-bottom: 1px solid;
+}
+.joke:empty {
+  border: none;
+}
+.joke::-webkit-scrollbar {
+  display: none;
+}
+.joke .joke-word {
+  position: absolute;
+  font-size: 20px;
+  color: white;
+  padding: 3px 5px;
+  background-color: black;
+  border-radius: 4px;
+  opacity: 0;
+  animation: show var(--joke-word-dur) linear forwards;
+  white-space: nowrap;
+  height: var(--joke-word-height);
+  transition: var(--joke-dur);
 }
 
 .ruler {
