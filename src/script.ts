@@ -36,6 +36,8 @@ const gravity = 0.8;
 const friction = 0.5;
 let WIDTH = window.innerWidth * 0.9;
 let HEIGHT = window.innerHeight * 0.9;
+let _WIDTH = window.innerWidth * 0.9;
+let _HEIGHT = window.innerHeight * 0.9;
 let animating = false;
 let animationFrameId = 0;
 let timeout: unknown;
@@ -342,6 +344,8 @@ reloadBtn.addEventListener("click", () => {
 });
 // Reconstructing elements on window resize
 window.addEventListener("resize", () => {
+  _WIDTH = 0 + WIDTH;
+  _HEIGHT = 0 + HEIGHT;
   WIDTH = window.innerWidth * 0.9;
   HEIGHT = window.innerHeight * 0.9;
 
@@ -354,6 +358,17 @@ window.addEventListener("resize", () => {
       ball.jokeWord.setPossitions();
     });
   }, 100);
+
+  if (Math.abs(_WIDTH - WIDTH) > 100 || Math.abs(_HEIGHT - HEIGHT) > 100) {
+    clearTimeout(timeoutResize as number);
+    WIDTH = document.body.clientWidth * 0.9;
+    HEIGHT = window.innerHeight * 0.9;
+    canvas.width = WIDTH;
+    canvas.height = HEIGHT;
+    balls.forEach((ball) => {
+      ball.jokeWord.setPossitions();
+    });
+  }
 });
 window.addEventListener("mousedown", () => {
   mouse.down = true;
